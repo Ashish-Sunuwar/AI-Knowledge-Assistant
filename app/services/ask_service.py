@@ -46,7 +46,9 @@ _RETRIEVER = build_retriever_from_folder(
     dim=256,
 )
 
-_MIN_SCORE = 0.05  # similarity threshold; tune as needed
+import os
+
+_MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.12"))  # similarity threshold; tune as needed
 
 class AskService:
 
