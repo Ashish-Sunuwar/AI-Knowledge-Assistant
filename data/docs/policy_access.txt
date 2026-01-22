@@ -1,0 +1,4 @@
+Access Control Policy
+- Access is granted based on least privilege.
+- All access requests must be approved by a manager.
+- Admin actions must be logged and reviewed weekly.

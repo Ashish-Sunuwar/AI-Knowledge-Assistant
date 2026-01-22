@@ -1,0 +1,4 @@
+Incident Response Policy
+- Report incidents within 1 hour of discovery.
+- Severity levels: Low, Medium, High, Critical.
+- Critical incidents require executive notification.
