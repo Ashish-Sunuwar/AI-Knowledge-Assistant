@@ -6,6 +6,8 @@ from typing import Callable
 
 from fastapi import Request, Response
 
+from app.core.metrics import STORE, RequestMetrics
+
 def configure_logging(log_level: str = "INFO") -> None:
     """
     Basic, production-friendly logging setup.
@@ -51,6 +53,17 @@ async def request_logging_middleware(request: Request, call_next: Callable) -> R
     )
 
     response.headers["X-Request-ID"] = request_id
+
+    STORE.add(
+        RequestMetrics(
+            ts=time.time(),
+            request_id=request_id,
+            path=request.url.path,
+            method=request.method,
+            status_code=response.status_code,
+            latency_ms=duration_ms,
+        )
+    )
     return response
 
 
