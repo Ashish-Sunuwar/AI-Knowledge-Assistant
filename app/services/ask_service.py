@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from tracemalloc import start
 from typing import List, Optional
 
-
 from app import llm
 from app.models.ask import SourceItem
 from app.rag.index_builder import build_retriever_from_folder
@@ -12,11 +11,14 @@ from app.rag.vector_store import SearchResult
 from app.llm.client import get_llm_client
 from app.rag.prompting import build_prompt
 
+from app.llm.schemas import GroundedAnswer
+
 @dataclass
 class AskResult:
     answer: str
     confidence: float | None = None
     sources: list[str] | None = None
+    used_sources: list[str] | None = None
     latency_ms: float | None = None
     model: str | None = None
     tokens_used: int | None= None
@@ -90,27 +92,35 @@ class AskService:
 
         llm = get_llm_client()
         prompt = build_prompt(question, sources)
-        llm_result = llm.generate(prompt)
+        
+        parsed, llm_raw = llm.generate_structured(prompt, GroundedAnswer)
 
-        answer = (llm_result.text or "").strip()
+        answer = (parsed.answer or "").strip()
+        used_sources = parsed.used_sources or []
 
-        # Guardrails (VERY important)
-        if not sources:
+        # --- Guardrail 1: if model says it used sources, they must be from retrieved sources
+        valid_chunk_ids = {s.chunk_id for s in sources}
+        used_sources = [cid for cid in used_sources if cid in valid_chunk_ids]
+
+        # --- Guardrail 2: If answer isn't "I don't know.", it MUST cite at least 1 source
+        if answer != "I don't know." and len(used_sources) == 0:
             answer = "I don't know."
 
-        if not answer:
-            answer = "I don't know."
-
+        # --- Guardrail 3: If answer is "I don't know.", citations must be empty
+        if answer == "I don't know.":
+            used_sources = []
 
         latency_ms = (time.perf_counter() - start) * 1000
+
 
         return AskResult(
             answer=answer,
             confidence=confidence,
             sources=sources,
+            used_sources=used_sources,
             latency_ms=latency_ms,
-            model=llm_result.model,
-            tokens_used=llm_result.tokens_used or 0,
+            model=llm_raw.model,
+            tokens_used=llm_raw.tokens_used or 0,
         )
     
 

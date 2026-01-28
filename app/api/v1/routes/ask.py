@@ -27,6 +27,7 @@ async def ask(
         answer=result.answer,
         confidence=result.confidence,
         sources=result.sources or [],
+        used_sources=result.used_sources or [],
     )
 
     return ApiResponse(
