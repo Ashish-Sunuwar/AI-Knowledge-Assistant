@@ -1,0 +1,23 @@
+[
+  {
+    "id": "password_expiry",
+    "question": "What is the password expiry policy?",
+    "expect_idk": false,
+    "expected_answer_contains": ["90 days"],
+    "expected_used_sources": ["policy_passwords::chunk_0"]
+  },
+  {
+    "id": "least_privilege",
+    "question": "How is access granted according to policy?",
+    "expect_idk": false,
+    "expected_answer_contains": ["least privilege"],
+    "expected_used_sources": ["policy_access::chunk_0"]
+  },
+  {
+    "id": "nonsense_query",
+    "question": "quantum banana spaceship policy",
+    "expect_idk": true,
+    "expected_answer_contains": [],
+    "expected_used_sources": []
+  }
+]

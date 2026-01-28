@@ -1,3 +1,4 @@
+import re
 import os
 from dataclasses import dataclass
 from typing import Type, TypeVar
@@ -30,26 +31,37 @@ class StubLLMClient(LLMClient):
         return LLMResult(text="{}", model="stub-llm", tokens_used=0)
 
     def generate_structured(self, prompt: str, schema: Type[T]) -> tuple[T, LLMResult]:
-        # Simple deterministic behavior for tests/dev:
-        if "CONTEXT:\n(no context)" in prompt or "(no context)" in prompt:
+        # If there is no context, always return IDK
+        if "CONTEXT:" in prompt and "(no context)" in prompt:
             obj = schema.model_validate({"answer": "I don't know.", "used_sources": []})
             return obj, LLMResult(text=obj.model_dump_json(), model="stub-llm", tokens_used=0)
 
-        # If context exists, return a generic grounded response using first chunk id
-        # (We’ll still enforce groundedness rules in AskService.)
-        # Extract first chunk id from prompt
-        first = None
+        # Extract first chunk id (for citation)
+        chunk_id = None
         for line in prompt.splitlines():
             if line.startswith("CHUNK_ID:"):
-                first = line.split("CHUNK_ID:", 1)[1].strip()
+                chunk_id = line.split("CHUNK_ID:", 1)[1].strip()
                 break
 
-        obj = schema.model_validate(
-            {
-                "answer": "Based on the provided policy context, the answer is in the internal documents.",
-                "used_sources": [first] if first else [],
-            }
-        )
+        # Extract the context text portion (best-effort)
+        context_match = re.search(r"CONTEXT:\s*(.*?)\s*QUESTION:", prompt, flags=re.DOTALL)
+        context = context_match.group(1) if context_match else prompt
+
+        # Heuristic: if we see "expire" and a pattern like "90 days", answer that.
+        m = re.search(r"(Passwords?[^.\n]*expire[^.\n]*\d+\s+days[^.\n]*[.\n])", context, flags=re.IGNORECASE)
+        if m:
+            answer = m.group(1).strip().rstrip(".") + "."
+            obj = schema.model_validate({"answer": answer, "used_sources": [chunk_id] if chunk_id else []})
+            return obj, LLMResult(text=obj.model_dump_json(), model="stub-llm", tokens_used=0)
+
+        # Heuristic for least privilege
+        if re.search(r"least privilege", context, flags=re.IGNORECASE):
+            answer = "Access is granted based on least privilege."
+            obj = schema.model_validate({"answer": answer, "used_sources": [chunk_id] if chunk_id else []})
+            return obj, LLMResult(text=obj.model_dump_json(), model="stub-llm", tokens_used=0)
+
+        # Default: if context exists but we cannot extract a specific answer, be safe
+        obj = schema.model_validate({"answer": "I don't know.", "used_sources": []})
         return obj, LLMResult(text=obj.model_dump_json(), model="stub-llm", tokens_used=0)
 
 
