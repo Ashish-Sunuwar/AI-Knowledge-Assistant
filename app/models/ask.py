@@ -15,4 +15,5 @@ class SourceItem(BaseModel):
 class AnswerData(BaseModel):
     answer: str
     sources: List[SourceItem] = []
+    used_sources: List[str] = []
     confidence: Optional[float] = None
