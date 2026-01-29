@@ -6,17 +6,19 @@ from app.services.ask_service import AskService
 from app.services.dependencies import get_ask_service
 from app.core.metrics import STORE, RequestMetrics
 import time
+from app.core.rate_limit import rate_limit_dependency
+
 
 router = APIRouter(tags=["ask"])
 
 
-@router.post("/ask", response_model=ApiResponse)
+@router.post("/ask", response_model=ApiResponse, dependencies=[Depends(rate_limit_dependency)],)
 async def ask(
     request: Request,
     payload: QuestionRequest,
     service: AskService = Depends(get_ask_service),
 ):
-    result = service.answer(payload.question)
+    result = await service.answer(payload.question)
 
     meta = ResponseMeta(
         request_id=getattr(request.state, "request_id", None),
