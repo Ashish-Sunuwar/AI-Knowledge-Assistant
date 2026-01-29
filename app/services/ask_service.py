@@ -2,6 +2,8 @@ import time
 from dataclasses import dataclass
 from tracemalloc import start
 from typing import List, Optional
+from app.core.config import settings
+
 
 from app import llm
 from app.models.ask import SourceItem
@@ -53,7 +55,7 @@ _RETRIEVER = build_retriever_from_folder(
 
 import os
 
-_MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.12"))  # similarity threshold; tune as needed
+_MIN_SCORE = settings.rag_min_score
 
 class AskService:
 

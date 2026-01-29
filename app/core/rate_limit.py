@@ -3,6 +3,7 @@ import time
 from collections import deque
 from threading import Lock
 from fastapi import Request, HTTPException
+from app.core.config import settings
 
 class RateLimiter:
     def __init__(self, max_requests: int, window_seconds: int):
@@ -33,7 +34,7 @@ LIMITER = RateLimiter(max_requests=30, window_seconds=60)
 
 def rate_limit_dependency(request: Request):
     # Disable rate limiting during tests or local dev if configured
-    if os.getenv("DISABLE_RATE_LIMIT", "").lower() == "true":
+    if settings.disable_rate_limit:
         return
     # prefer API key if present; else fall back to client IP
     api_key = request.headers.get("X-API-Key")
