@@ -27,6 +27,7 @@ jobs:
 
       - name: Run tests
         env:
+          LLM_PROVIDER: "stub"
           RAG_MIN_SCORE: "0.12"
         run: |
           python -m pytest -q

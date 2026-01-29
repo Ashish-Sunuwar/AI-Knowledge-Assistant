@@ -13,6 +13,9 @@ from app.rag.prompting import build_prompt
 
 from app.llm.schemas import GroundedAnswer
 
+from app.core.input_guard import detect_prompt_injection
+
+
 @dataclass
 class AskResult:
     answer: str
@@ -54,9 +57,22 @@ _MIN_SCORE = float(os.getenv("RAG_MIN_SCORE", "0.12"))  # similarity threshold; 
 
 class AskService:
 
-    def answer(self, question: str, k: int = 3) -> AskResult:
+    async def answer(self, question: str, k: int = 3) -> AskResult:
         start = time.perf_counter()
-
+        
+        hit = detect_prompt_injection(question)
+        if hit:
+            latency_ms = (time.perf_counter() - start) * 1000
+            return AskResult(
+                answer="I can't help with that request.",
+                confidence=None,
+                sources=[],
+                used_sources=[],
+                latency_ms=latency_ms,
+                model="security-guard",
+                tokens_used=0,
+            )
+        
         results: List[SearchResult] = _RETRIEVER.retrieve(question, k=k)
 
         sources: List[SourceItem] = []
@@ -98,21 +114,20 @@ class AskService:
         answer = (parsed.answer or "").strip()
         used_sources = parsed.used_sources or []
 
-        # --- Guardrail 1: if model says it used sources, they must be from retrieved sources
+        # Guardrail 1: if model says it used sources, they must be from retrieved sources
         valid_chunk_ids = {s.chunk_id for s in sources}
         used_sources = [cid for cid in used_sources if cid in valid_chunk_ids]
 
-        # --- Guardrail 2: If answer isn't "I don't know.", it MUST cite at least 1 source
+        # Guardrail 2: If answer isn't "I don't know.", it MUST cite at least 1 source
         if answer != "I don't know." and len(used_sources) == 0:
             answer = "I don't know."
 
-        # --- Guardrail 3: If answer is "I don't know.", citations must be empty
+        # Guardrail 3: If answer is "I don't know.", citations must be empty
         if answer == "I don't know.":
             used_sources = []
 
         latency_ms = (time.perf_counter() - start) * 1000
-
-
+        
         return AskResult(
             answer=answer,
             confidence=confidence,
