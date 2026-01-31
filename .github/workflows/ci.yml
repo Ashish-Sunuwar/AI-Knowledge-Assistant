@@ -31,3 +31,12 @@ jobs:
           RAG_MIN_SCORE: "0.12"
         run: |
           python -m pytest -q
+
+  docker-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build test image
+        run: docker build --target test -t ai-knowledge-assistant:test .
+      - name: Run tests in Docker
+        run: docker run --rm ai-knowledge-assistant:test
