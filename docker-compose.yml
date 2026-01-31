@@ -1,0 +1,14 @@
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: "development"
+      LLM_PROVIDER: "stub"
+      RAG_MIN_SCORE: "0.12"
+      DISABLE_RATE_LIMIT: "true"
+      TRUSTED_HOSTS: "localhost,127.0.0.1,testserver"
+      CORS_ORIGINS: "http://localhost:3000"
