@@ -7,12 +7,12 @@ from app.services.dependencies import get_ask_service
 from app.core.metrics import STORE, RequestMetrics
 import time
 from app.core.rate_limit import rate_limit_dependency
-
+from app.core.security import require_api_key
 
 router = APIRouter(tags=["ask"])
 
 
-@router.post("/ask", response_model=ApiResponse, dependencies=[Depends(rate_limit_dependency)],)
+@router.post("/ask", response_model=ApiResponse, dependencies=[Depends(require_api_key), Depends(rate_limit_dependency)],)
 async def ask(
     request: Request,
     payload: QuestionRequest,

@@ -22,9 +22,10 @@ class Settings(BaseSettings):
     # Security/ops
     api_key: str | None = Field(default=None, alias="API_KEY")
     disable_rate_limit: bool = Field(default=False, alias="DISABLE_RATE_LIMIT")
+    require_api_key: bool = Field(default=False, alias="REQUIRE_API_KEY")
 
     # Web
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
-    trusted_hosts: str = Field(default="localhost,127.0.0.1, testserver", alias="TRUSTED_HOSTS")
+    trusted_hosts: str = Field(default="localhost,127.0.0.1,testserver", alias="TRUSTED_HOSTS")
 
 settings = Settings()

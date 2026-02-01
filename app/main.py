@@ -54,7 +54,7 @@ def create_app() -> FastAPI:
         }
     
     # Versioned API
-    app.include_router(api_router, prefix="/api/v1")
+    app.include_router(api_router)
     
     return app
 app = create_app()
