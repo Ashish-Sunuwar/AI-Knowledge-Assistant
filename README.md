@@ -16,101 +16,147 @@ This project is built with production-grade engineering practices, including str
     •	Config-driven (dev / CI / prod ready)
 
 ## Architecture Overview
-User Question
-     ↓
-FastAPI API (/api/v1/ask)
-     ↓
-Retriever (Vector Search + Threshold)
-     ↓
-┌───────────────────────────────┐
-│ No relevant sources found?    │->"I don’t know"
-└───────────────────────────────┘
-     ↓
-Prompt Builder (with citations)
-     ↓
-LLM (OpenAI / Stub / Pluggable)
-     ↓
-Guardrails & Validation
-    ↓
-Structured API Response
+    User Question
+         ↓
+    FastAPI API (/api/v1/ask)
+         ↓
+    Retriever (Vector Search + Threshold)
+         ↓
+    ┌───────────────────────────────┐
+    │ No relevant sources found?    │->"I don’t know"
+    └───────────────────────────────┘
+         ↓
+    Prompt Builder (with citations)
+         ↓
+    LLM (OpenAI / Stub / Pluggable)
+         ↓
+    Guardrails & Validation
+        ↓
+    Structured API Response
 
 ## Project Structure
-AI-Knowledge-Assistant/
-|── app/
-│   |── api/
-│   │   └── v1/
-│   │       |── routes/
-│   │       │   |── ask.py
-│   │       │   |── metrics.py
-│   │       │   |── version.py
-│   │       └── router.py
-│   |── core/
-│   │   |── config.py
-│   │   |── security.py
-│   │   |── rate_limit.py
-│   │   |── metrics.py
-│   │   └── logging.py
-│   |── rag/
-│   │   |── loaders.py
-│   │   |── chunking.py
-│   │   |── vector_store.py
-│   │   |── index_builder.py
-│   │   └── prompting.py
-│   |── llm/
-│   │   |── client.py
-│   │   └── stub.py
-│   |── services/
-│   │   └── ask_service.py
-│   └── main.py
-|── data/
-│   └── docs/
-│       |── policy_access.txt
-│       |── policy_passwords.txt
-│       └── policy_incident.txt
-|── tests/
-│   |── test_ask.py
-│   |── test_rag_api.py
-│   |── test_grounded_output.py
-│   |── test_eval_regression.py
-│   |── test_security.py
-│   |── test_metrics.py
-│   |── test_health.py
-│   └── test_version.py
-|── .github/workflows/ci.yml
-|── dockerfile
-|── requirements.txt
-└── README.md
+    AI-Knowledge-Assistant/
+    |── app/
+    │   |── api/
+    │   │   └── v1/
+    │   │       |── routes/
+    │   │       │   |── ask.py
+    │   │       │   |── metrics.py
+    │   │       │   |── version.py
+    │   │       └── router.py
+    │   |── core/
+    │   │   |── config.py
+    │   │   |── security.py
+    │   │   |── rate_limit.py
+    │   │   |── metrics.py
+    │   │   └── logging.py
+    │   |── rag/
+    │   │   |── loaders.py
+    │   │   |── chunking.py
+    │   │   |── vector_store.py
+    │   │   |── index_builder.py
+    │   │   └── prompting.py
+    │   |── llm/
+    │   │   |── client.py
+    │   │   └── stub.py
+    │   |── services/
+    │   │   └── ask_service.py
+    │   └── main.py
+    |── data/
+    │   └── docs/
+    │       |── policy_access.txt
+    │       |── policy_passwords.txt
+    │       └── policy_incident.txt
+    |── tests/
+    │   |── test_ask.py
+    │   |── test_rag_api.py
+    │   |── test_grounded_output.py
+    │   |── test_eval_regression.py
+    │   |── test_security.py
+    │   |── test_metrics.py
+    │   |── test_health.py
+    │   └── test_version.py
+    |── .github/workflows/ci.yml
+    |── dockerfile
+    |── requirements.txt
+    └── README.md
 
 
-flowchart TD
-  U[User / Client] -->|POST /api/v1/ask| API[FastAPI API]
+## Architecture Diagram
+                  ┌──────────────────────────┐
+                  │       User / Client      │
+                  └─────────────┬────────────┘
+                                │  POST /api/v1/ask
+                                ▼
+                     ┌───────────────────────┐
+                     │       FastAPI API     │
+                     └─────────────┬─────────┘
+                                   │
+                ┌──────────────────┴──────────────────┐
+                │                                     │
+                ▼                                     ▼
+       ┌──────────────────┐                 ┌──────────────────┐
+       │ Security Controls│                 │   Metrics Store  │
+       │ - API Key (opt)  │                 │ - latency/tokens │
+       │ - Trusted Hosts  │                 │ - counts         │
+       │ - CORS           │                 └──────────────────┘
+       └─────────┬────────┘
+                 │
+                 ▼
+       ┌──────────────────┐
+       │ Rate Limiter     │
+       │ (per IP/API key) │
+       └─────────┬────────┘
+                 │
+                 ▼
+       ┌──────────────────────────┐
+       │ Prompt Injection Detector│
+       └─────────┬────────────────┘
+                 │ allowed
+                 ▼
+       ┌──────────────────────────┐
+       │ Retriever (Top-K search) │
+       │ - embed query            │
+       │ - vector similarity      │
+       └─────────┬────────────────┘
+                 │
+                 ▼
+       ┌──────────────────────────┐
+       │ Vector Store (FAISS)     │
+       └─────────┬────────────────┘
+                 │ chunks + scores
+                 ▼
+       ┌──────────────────────────┐
+       │ Threshold filter         │
+       │ (RAG_MIN_SCORE)          │
+       └───────┬───────────┬──────┘
+               │ no sources│ sources
+               ▼           ▼
+     ┌────────────────┐   ┌──────────────────────────┐
+     │ "I don't know" │   │ Prompt Builder           │
+     │ sources=[]     │   │ (grounded with citations)│
+     └────────────────┘   └─────────┬────────────────┘
+                                    │
+                                    ▼
+                           ┌──────────────────────┐
+                           │ LLM Client           │
+                           │ (OpenAI / Stub)      │
+                           └─────────┬────────────┘
+                                     │ structured output
+                                     ▼
+                           ┌──────────────────────────┐
+                           │ Guardrails / Validation  │
+                           │ - used_sources subset    │
+                           │ - must cite if not IDK   │
+                           └─────────┬────────────────┘
+                                     ▼
+                           ┌──────────────────────────┐
+                           │ API Response             │
+                           │ - answer                 │
+                           │ - sources + used_sources │
+                           │ - meta (latency/model)   │
+                           └──────────────────────────┘
 
-  API --> SEC{Security Layer}
-  SEC -->|Trusted hosts / CORS| RL{Rate Limit}
-  RL --> PI{Prompt Injection Check}
-
-  PI -->|blocked| BLOCK[Return 200 with safe refusal / IDK]
-  PI -->|allowed| RET[Retriever: Vector Search]
-
-  RET -->|Embed query + Top-K search| VS[(Vector Store / FAISS)]
-  VS --> R[Retrieved chunks + scores]
-
-  R --> TH{Score threshold\nRAG_MIN_SCORE}
-  TH -->|no good sources| IDK[Return: I don't know\nsources=[]]
-  TH -->|good sources| PROMPT[Build grounded prompt\nwith citations]
-
-  PROMPT --> LLM[LLM Client\n(OpenAI / Stub)]
-  LLM --> OUT[Structured output\n(answer + used_sources)]
-
-  OUT --> G1{Guardrails}
-  G1 -->|validate used_sources\nmust be subset of retrieved| G2{Grounding rule}
-  G2 -->|no citations for non-IDK| IDK2[Force: I don't know\nused_sources=[]]
-  G2 -->|ok| RESP[ApiResponse\nanswer + sources + used_sources\nmeta: latency/model/tokens]
-
-  RESP --> METRICS[Metrics Store\n(latency/tokens/count)]
-  METRICS --> API
-
-  API -->|GET /api/v1/metrics\nGET /api/v1/metrics/summary| OBS[Observability]
 Observability:
   GET /api/v1/metrics
   GET /api/v1/metrics/summary
@@ -205,13 +251,12 @@ docker run --rm -p 8000:8000 ai-knowledge-assistant:runtime
     •	Release tags created after stable merges
 
 ## Configuration (via Environment Variables)
-### Variable	        ### Description
-LLM_PROVIDER	        openai or stub
-RAG_MIN_SCORE	        Similarity threshold
-API_KEY	                API key value
-REQUIRE_API_KEY	        Enable API key enforcement
-DISABLE_RATE_LIMIT	    Disable rate limiting (CI/dev)
-ENVIRONMENT	            dev / test / prod
+    LLM_PROVIDER -> openai or stub
+    RAG_MIN_SCORE -> Similarity threshold
+    API_KEY -> API key value
+    REQUIRE_API_KEY	-> Enable API key enforcement
+    DISABLE_RATE_LIMIT -> Disable rate limiting (CI/dev)
+    ENVIRONMENT -> dev / test / prod
 
 ## Why This Project Matters
 This project demonstrates:
@@ -232,6 +277,7 @@ This project demonstrates:
 Ashish Sunuwar  
 AI / Software Engineer  
 LinkedIn: https://www.linkedin.com/in/ashish-sunuwar-810314206/
+
 Email: ashish.a.sun@gmail.com
 
 For questions or collaboration, feel free to reach out via LinkedIn or Email.
