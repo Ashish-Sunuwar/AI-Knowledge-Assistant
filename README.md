@@ -157,32 +157,32 @@ This project is built with production-grade engineering practices, including str
                            │ - meta (latency/model)   │
                            └──────────────────────────┘
 
-Observability:
-  GET /api/v1/metrics
-  GET /api/v1/metrics/summary
+## Observability:
+      GET /api/v1/metrics
+      GET /api/v1/metrics/summary
 
 
 ## How the RAG Pipeline Works
-1.	Document Ingestion
-    •	Documents are loaded from data/docs
-    •	Chunked with overlap to preserve semantic context
-    •	Embedded and indexed into a vector store
-2.	Query Handling
-    •	User question hits /api/v1/ask
-    •	Vector search retrieves top-K chunks
-    •	Low-confidence matches are filtered via RAG_MIN_SCORE
-3.	Safety First
-    •	If no reliable chunks remain → return "I don’t know"
-    •	LLM is not called when retrieval fails
-4.	Prompt + LLM
-    •	Prompt explicitly restricts the LLM to provided sources
-    •	LLM returns structured output:
-        o	answer
-        o	used_sources
-5.	Post-LLM Guardrails
-    •	Used sources must match retrieved chunks
-    •	Non-IDK answers must cite at least one source
-    •	Violations → forced "I don’t know"
+    1.	Document Ingestion
+        •	Documents are loaded from data/docs
+        •	Chunked with overlap to preserve semantic context
+        •	Embedded and indexed into a vector store
+    2.	Query Handling
+        •	User question hits /api/v1/ask
+        •	Vector search retrieves top-K chunks
+        •	Low-confidence matches are filtered via RAG_MIN_SCORE
+    3.	Safety First
+        •	If no reliable chunks remain → return "I don’t know"
+        •	LLM is not called when retrieval fails
+    4.	Prompt + LLM
+        •	Prompt explicitly restricts the LLM to provided sources
+        •	LLM returns structured output:
+            o	answer
+            o	used_sources
+    5.	Post-LLM Guardrails
+        •	Used sources must match retrieved chunks
+        •	Non-IDK answers must cite at least one source
+        •	Violations → forced "I don’t know"
 
 ## Security Controls
     •	API Key Authentication
@@ -196,26 +196,26 @@ Observability:
         o	Blocks unsafe prompts before LLM execution
 
 ## Metrics & Observability
-Endpoints:
-    •	GET /api/v1/metrics
-    •	GET /api/v1/metrics/summary
-Tracked:
-    •	Request counts
-    •	Latency
-    •	Token usage
-    •	LLM model metadata
+    Endpoints:
+        •	GET /api/v1/metrics
+        •	GET /api/v1/metrics/summary
+    Tracked:
+        •	Request counts
+        •	Latency
+        •	Token usage
+        •	LLM model metadata
 
 ## Testing Strategy
-This project treats LLMs as non-deterministic systems and tests accordingly.
-Test Coverage Includes:
-    •	API behavior & validation
-    •	RAG correctness
-    •	“I don’t know” behavior
-    •	Citation enforcement
-    •	Prompt-injection blocking
-    •	Rate limiting
-    •	API key enforcement
-    •	Regression evaluation suite
+    This project treats LLMs as non-deterministic systems and tests accordingly.
+    Test Coverage Includes:
+        •	API behavior & validation
+        •	RAG correctness
+        •	“I don’t know” behavior
+        •	Citation enforcement
+        •	Prompt-injection blocking
+        •	Rate limiting
+        •	API key enforcement
+        •	Regression evaluation suite
 
 ## Deterministic CI Testing
 LLM_PROVIDER=stub
@@ -259,11 +259,11 @@ docker run --rm -p 8000:8000 ai-knowledge-assistant:runtime
     ENVIRONMENT -> dev / test / prod
 
 ## Why This Project Matters
-This project demonstrates:
-    •	Real-world LLM system design
-    •	Treating AI as a controlled component, not magic
-    •	Engineering rigor around safety, evaluation, and reliability
-    •	Production readiness (CI, Docker, security)
+    This project demonstrates:
+        •	Real-world LLM system design
+        •	Treating AI as a controlled component, not magic
+        •	Engineering rigor around safety, evaluation, and reliability
+        •	Production readiness (CI, Docker, security)
 
 ## Future Improvements:
     •	Caching frequent queries
