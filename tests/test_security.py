@@ -5,6 +5,7 @@ from app.main import app
 client = TestClient(app)
 
 def test_metrics_requires_api_key_when_configured(monkeypatch):
+    monkeypatch.setenv("REQUIRE_API_KEY", "true")
     monkeypatch.setenv("API_KEY", "secret123")
 
     # no key -> 401
@@ -28,3 +29,17 @@ def test_rate_limit_triggers(monkeypatch):
     for _ in range(35):
         res = client.post("/api/v1/ask", json={"question": "What is the password expiry policy?"})
     assert res.status_code in (200, 429)
+
+def test_api_key_required_when_enabled(monkeypatch):
+    monkeypatch.setenv("REQUIRE_API_KEY", "true")
+    monkeypatch.setenv("API_KEY", "secret")
+
+    res = client.post("/api/v1/ask", json={"question": "test"})
+    assert res.status_code == 401
+
+    res = client.post(
+        "/api/v1/ask",
+        headers={"X-API-Key": "secret"},
+        json={"question": "test"},
+    )
+    assert res.status_code in (200, 422)
